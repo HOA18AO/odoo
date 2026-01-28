@@ -1,0 +1,58 @@
+services:
+  odoo:
+    image: odoo:18.0
+    container_name: odoo_app
+    restart: unless-stopped
+    environment:
+      # Database connection (external PostgreSQL)
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # Odoo settings
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - LIMIT_MEMORY_SOFT=${LIMIT_MEMORY_SOFT:-2147483648}
+      - LIMIT_MEMORY_HARD=${LIMIT_MEMORY_HARD:-2684354560}
+      - LIMIT_REQUEST=${LIMIT_REQUEST:-8192}
+      - LIMIT_TIME_CPU=${LIMIT_TIME_CPU:-600}
+      - LIMIT_TIME_REAL=${LIMIT_TIME_REAL:-1200}
+      - LIMIT_TIME_REAL_CRON=${LIMIT_TIME_REAL_CRON:-1800}
+      - MAX_CRON_THREADS=${MAX_CRON_THREADS:-2}
+      - WORKERS=${WORKERS:-2}
+    volumes:
+      - ./config/odoo.conf:/etc/odoo/odoo.conf
+      - ./scripts/entrypoint.sh:/custom-entrypoint.sh
+      - ./addons/custom:/mnt/extra-addons:ro
+      - ./filestore:/var/lib/odoo/filestore
+      - ./logs:/var/log/odoo
+    entrypoint: ["/bin/bash", "/custom-entrypoint.sh"]
+    ports:
+      - "8069:8069"
+    networks:
+      - odoo_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/web/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  nginx:
+    image: nginx:alpine
+    container_name: odoo_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+    networks:
+      - odoo_network
+    depends_on:
+      - odoo
+
+networks:
+  odoo_network:
+    driver: bridge

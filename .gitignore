@@ -205,3 +205,20 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+*.csv
+*.txt
+*.json
+*.xlsx
+
+# Odoo specific
+.env
+filestore/
+logs/
+nginx/logs/
+nginx/ssl/
+*.log
+*.dump
+*.tar.gz
+backups/
+*.md
